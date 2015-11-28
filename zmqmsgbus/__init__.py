@@ -1,1 +1,1 @@
-from .zmqmsg import *
+from .msg import *
