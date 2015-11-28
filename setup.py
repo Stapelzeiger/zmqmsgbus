@@ -13,7 +13,10 @@ args = dict(
     url='https://github.com/stapelzeiger/zmqmsgbus',
     license='BSD',
     entry_points = {
-        'console_scripts': ['dump=zmqmsgbus.tools.dump'],
+        'console_scripts': [
+            'dump=zmqmsgbus.tools.dump',
+            'forwarder=zmqmsgbus.tools.forwarder'
+        ],
     },
     test_suite='nose.collector',
     tests_require=['nose']
