@@ -15,7 +15,9 @@ def createZmqFilter(topic):
     Creates a ZeroMQ subscribe filter
     if topic ends with a '/', the filter matches any topic in the namespace
     """
-    if topic.endswith('/'):
+    if topic == '':
+        return b''  # this will match any message
+    elif topic.endswith('/'):
         return topic.encode('utf8')
     else:
         return topic.encode('utf8') + b'\0'

@@ -12,8 +12,13 @@ class TestZmqMsg(unittest.TestCase):
         self.assertEqual(('hello', [1, 2, 3]),
                          zmqmsgbus.decode(zmqmsgbus.encode('hello', [1, 2, 3])))
 
-    def test_createZmqFilter(self):
+    def test_createZmqFilterForNamespace(self):
         self.assertEqual(b'hello/',
                          zmqmsgbus.createZmqFilter('hello/'))
+
+    def test_createZmqFilterForTopic(self):
         self.assertEqual(b'hello/world\x00',
                          zmqmsgbus.createZmqFilter('hello/world'))
+
+    def test_createZmqFilterAny(self):
+        self.assertEqual(b'', zmqmsgbus.createZmqFilter(''))
