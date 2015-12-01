@@ -44,7 +44,8 @@ class TestBus(unittest.TestCase):
 
 class TestNode(unittest.TestCase):
 
-    def setUp(self):
+    @patch('zmqmsgbus.threading.Thread')
+    def setUp(self, thread_mock):
         self.bus = Mock()
         self.node = zmqmsgbus.Node(self.bus)
 
@@ -87,18 +88,18 @@ class TestNodeMessagHandlers(TestNode):
 
 class TestNodeRecv(TestNode):
 
-    @patch('zmqmsgbus.Queue.get')
+    @patch('zmqmsgbus.queue.Queue.get')
     def test_recv_calls_subscribe(self, queue_get_mock):
         self.node.recv('test')
         self.bus.subscribe.assert_called_once_with('test')
 
-    @patch('zmqmsgbus.Queue.put_nowait')
+    @patch('zmqmsgbus.queue.Queue.put_nowait')
     def test_message_buffer_register(self, queue_put_mock):
         self.node._register_message_buffer_handler('test')
         self.node._handle_message('test', 123)
         queue_put_mock.assert_called_once_with(123)
 
-    @patch('zmqmsgbus.Queue.get')
+    @patch('zmqmsgbus.queue.Queue.get')
     def test_message_buffer_get(self, queue_get_mock):
         self.node._register_message_buffer_handler('test')
         queue_get_mock.return_value = 123
@@ -109,12 +110,12 @@ class TestNodeRecv(TestNode):
         self.node._handle_message('test', 123)
         self.assertEqual(123, self.node._get_message_from_buffer('test', None))
 
-    @patch('zmqmsgbus.Queue.get')
+    @patch('zmqmsgbus.queue.Queue.get')
     def test_recv_returns_from_queue(self, queue_get_mock):
         queue_get_mock.return_value = 123
         self.assertEqual(123, self.node.recv('test'))
 
-    @patch('zmqmsgbus.Queue.get')
+    @patch('zmqmsgbus.queue.Queue.get')
     def test_recv_timeout(self, queue_get_mock):
         self.node.recv('test', timeout=1)
         queue_get_mock.assert_called_once_with(timeout=1)

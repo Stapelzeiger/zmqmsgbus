@@ -2,7 +2,8 @@ import zmq
 import zmqmsgbus.msg as msg
 import zmqmsgbus.call as call
 import threading
-from queue import Queue
+import queue
+import time
 
 
 class Bus:
@@ -13,18 +14,21 @@ class Bus:
         self.in_sock.connect(sub_addr)
         self.out_sock.connect(pub_addr)
 
+    def __del__(self):
+        self.ctx.destroy()
+
     def publish(self, topic, message):
         self.out_sock.send(msg.encode(topic, message))
 
     def subscribe(self, topic):
         self.in_sock.setsockopt(zmq.SUBSCRIBE, msg.createZmqFilter(topic))
 
-    def recv(self):
-        return msg.decode(self.in_sock.recv())
+    def recv(self, zmq_recv_flags=0):
+        return msg.decode(self.in_sock.recv(flags=zmq_recv_flags))
 
 
 class Node:
-    MAX_MESSAGE_BUF_SZ = 32
+    MAX_MESSAGE_BUF_SZ = 1000
 
     def __init__(self, bus):
         self.bus = bus
@@ -32,6 +36,11 @@ class Node:
         self.message_handlers = {}
         self.message_buffers = {}
         self.lock = threading.RLock()
+        self.recv_deamon = threading.Thread(target=self._recv_msg_loop, daemon=True)
+        self.recv_deamon.start()
+
+    def __del__(self):
+        self.recv_deamon.stop()
 
     def publish(self, topic, message):
         with self.lock:
@@ -39,8 +48,14 @@ class Node:
 
     def _register_message_buffer_handler(self, topic):
         if topic not in self.message_buffers:
-            self.message_buffers[topic] = Queue(self.MAX_MESSAGE_BUF_SZ)
-            handler = lambda _t, msg: self.message_buffers[topic].put_nowait(msg)
+            q = queue.Queue(self.MAX_MESSAGE_BUF_SZ)
+            self.message_buffers[topic] = q
+
+            def handler(_t, msg):
+                try:
+                    q.put_nowait(msg)
+                except queue.Full:
+                    pass
             self.register_message_handler(topic, handler)
 
     def _get_message_from_buffer(self, topic, timeout):
@@ -55,7 +70,7 @@ class Node:
         with self.lock:
             self._subscribe_to_topic(topic)
             self._register_message_buffer_handler(topic)
-            return self._get_message_from_buffer(topic, timeout)
+        return self._get_message_from_buffer(topic, timeout)
 
     def call(self, service, request):
         with self.lock:
@@ -85,3 +100,15 @@ class Node:
         if topic in self.message_handlers: #todo call also partial matches
             for handler in self.message_handlers[topic]:
                 handler(topic, message)
+
+    def _recv_msg_loop(self):
+        while (1):
+            try:
+                with self.lock:
+                    topic, message = self.bus.recv(zmq.NOBLOCK)
+                    self._handle_message(topic, message)
+            except zmq.ZMQError as err:
+                if err.errno == zmq.EAGAIN:
+                    time.sleep(0.001)
+                else:
+                    raise err
