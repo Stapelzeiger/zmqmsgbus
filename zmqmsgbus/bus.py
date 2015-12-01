@@ -1,5 +1,6 @@
 import zmq
 import zmqmsgbus
+from queue import Queue
 
 
 class Bus:
@@ -18,3 +19,49 @@ class Bus:
 
     def recv(self):
         return zmqmsgbus.decode(self.in_sock.recv())
+
+
+class Node:
+    MAX_MESSAGE_BUF_SZ = 32
+
+    def __init__(self, bus):
+        self.bus = bus
+        self.subscriptions = set()
+        self.message_handlers = {}
+        self.message_buffers = {}
+
+    def publish(self, topic, message):
+        self.bus.publish(topic, message)
+
+    def _register_message_buffer_handler(self, topic):
+        if topic not in self.message_buffers:
+            self.message_buffers[topic] = Queue(self.MAX_MESSAGE_BUF_SZ)
+            handler = lambda _t, msg: self.message_buffers[topic].put_nowait(msg)
+            self.register_message_handler(topic, handler)
+
+    def _get_message_from_buffer(self, topic):
+        return self.message_buffers[topic].get()
+
+    def recv(self, topic):
+        if topic not in self.subscriptions:
+            self.bus.subscribe(topic)
+            self.subscriptions.add(topic)
+        self._register_message_buffer_handler(topic)
+        return self._get_message_from_buffer(topic)
+
+    def call(self, service, request):
+        pass # returns response
+
+    def register_message_handler(self, topic, handler):
+        if topic in self.message_handlers:
+            self.message_handlers[topic].append(handler)
+        else:
+            self.message_handlers[topic] = [handler]
+
+    def register_service(self, service, handler):
+        pass
+
+    def _handle_message(self, topic, message):
+        if topic in self.message_handlers:
+            for handler in self.message_handlers[topic]:
+                handler(topic, message)

@@ -6,7 +6,7 @@ import zmq
 from logging import debug
 
 
-class TestZmqMsg(unittest.TestCase):
+class TestBus(unittest.TestCase):
 
     @patch('zmqmsgbus.zmq.Context')
     def setUp(self, ctx_mock):
@@ -39,3 +39,61 @@ class TestZmqMsg(unittest.TestCase):
         self.in_sock.recv.return_value = zmqmsgbus.encode('test', 123)
         self.assertEqual(('test', 123), self.bus.recv())
 
+
+class TestNode(unittest.TestCase):
+
+    def setUp(self):
+        self.bus = Mock()
+        self.node = zmqmsgbus.Node(self.bus)
+
+    def test_publish(self):
+        self.node.publish('topic', 123)
+        self.bus.publish.assert_called_once_with('topic', 123)
+
+    def test_register_message_handler(self):
+        handler = Mock()
+        self.node.register_message_handler('test', handler)
+        self.node._handle_message('test', 123)
+        handler.assert_called_once_with('test', 123)
+
+    def test_register_multiple_message_handlers_same_topic(self):
+        handler1 = Mock()
+        handler2 = Mock()
+        self.node.register_message_handler('test', handler1)
+        self.node.register_message_handler('test', handler2)
+        self.node._handle_message('test', 123)
+        handler1.assert_called_once_with('test', 123)
+        handler2.assert_called_once_with('test', 123)
+
+    @patch('zmqmsgbus.Queue.get')
+    def test_recv_calls_subscribe(self, queue_get_mock):
+        self.node.recv('topic')
+        self.bus.subscribe.assert_called_once_with('topic')
+
+    @patch('zmqmsgbus.Queue.get')
+    def test_multiple_recv_calls_subscribe_once(self, queue_get_mock):
+        self.node.recv('topic')
+        self.node.recv('topic')
+        self.bus.subscribe.assert_called_once_with('topic')
+
+    @patch('zmqmsgbus.Queue.put_nowait')
+    def test_message_buffer_register(self, queue_put_mock):
+        self.node._register_message_buffer_handler('test')
+        self.node._handle_message('test', 123)
+        queue_put_mock.assert_called_once_with(123)
+
+    @patch('zmqmsgbus.Queue.get')
+    def test_message_buffer_get(self, queue_get_mock):
+        self.node._register_message_buffer_handler('test')
+        queue_get_mock.return_value = 123
+        self.assertEqual(123, self.node._get_message_from_buffer('test'))
+
+    def test_message_buffer_queue(self):
+        self.node._register_message_buffer_handler('test')
+        self.node._handle_message('test', 123)
+        self.assertEqual(123, self.node._get_message_from_buffer('test'))
+
+    @patch('zmqmsgbus.Queue.get')
+    def test_recv_returns_from_queue(self, queue_get_mock):
+        queue_get_mock.return_value = 123
+        self.assertEqual(123, self.node.recv('test'))
