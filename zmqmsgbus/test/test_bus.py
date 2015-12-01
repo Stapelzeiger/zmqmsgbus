@@ -95,14 +95,19 @@ class TestNodeRecv(TestNode):
     def test_message_buffer_get(self, queue_get_mock):
         self.node._register_message_buffer_handler('test')
         queue_get_mock.return_value = 123
-        self.assertEqual(123, self.node._get_message_from_buffer('test'))
+        self.assertEqual(123, self.node._get_message_from_buffer('test', None))
 
     def test_message_buffer_queue(self):
         self.node._register_message_buffer_handler('test')
         self.node._handle_message('test', 123)
-        self.assertEqual(123, self.node._get_message_from_buffer('test'))
+        self.assertEqual(123, self.node._get_message_from_buffer('test', None))
 
     @patch('zmqmsgbus.Queue.get')
     def test_recv_returns_from_queue(self, queue_get_mock):
         queue_get_mock.return_value = 123
         self.assertEqual(123, self.node.recv('test'))
+
+    @patch('zmqmsgbus.Queue.get')
+    def test_recv_timeout(self, queue_get_mock):
+        self.node.recv('test', timeout=1)
+        queue_get_mock.assert_called_once_with(timeout=1)

@@ -39,21 +39,24 @@ class Node:
             handler = lambda _t, msg: self.message_buffers[topic].put_nowait(msg)
             self.register_message_handler(topic, handler)
 
-    def _get_message_from_buffer(self, topic):
-        return self.message_buffers[topic].get()
+    def _get_message_from_buffer(self, topic, timeout):
+        return self.message_buffers[topic].get(timeout=timeout)
 
     def _subscribe_to_topic(self, topic):
         if topic not in self.subscriptions:
             self.bus.subscribe(topic)
             self.subscriptions.add(topic)
 
-    def recv(self, topic):
+    def recv(self, topic, timeout=None):
         self._subscribe_to_topic(topic)
         self._register_message_buffer_handler(topic)
-        return self._get_message_from_buffer(topic)
+        return self._get_message_from_buffer(topic, timeout)
 
     def call(self, service, request):
         pass # returns response
+
+    def call_with_address(self, service, request, address):
+        return # returns response
 
     def register_service(self, service, handler):
         pass
