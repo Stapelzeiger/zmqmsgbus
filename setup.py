@@ -15,7 +15,8 @@ args = dict(
     entry_points = {
         'console_scripts': [
             'dump=zmqmsgbus.tools.dump',
-            'forwarder=zmqmsgbus.tools.forwarder'
+            'forwarder=zmqmsgbus.tools.forwarder',
+            'list=zmqmsgbus.tools.list'
         ],
     },
     test_suite='nose.collector',
