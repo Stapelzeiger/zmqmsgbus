@@ -1,5 +1,7 @@
 import zmq
 import zmqmsgbus.msg as msg
+import zmqmsgbus.call as call
+import threading
 from queue import Queue
 
 
@@ -29,9 +31,11 @@ class Node:
         self.subscriptions = set()
         self.message_handlers = {}
         self.message_buffers = {}
+        self.lock = threading.RLock()
 
     def publish(self, topic, message):
-        self.bus.publish(topic, message)
+        with self.lock:
+            self.bus.publish(topic, message)
 
     def _register_message_buffer_handler(self, topic):
         if topic not in self.message_buffers:
@@ -48,25 +52,34 @@ class Node:
             self.subscriptions.add(topic)
 
     def recv(self, topic, timeout=None):
-        self._subscribe_to_topic(topic)
-        self._register_message_buffer_handler(topic)
-        return self._get_message_from_buffer(topic, timeout)
+        with self.lock:
+            self._subscribe_to_topic(topic)
+            self._register_message_buffer_handler(topic)
+            return self._get_message_from_buffer(topic, timeout)
 
     def call(self, service, request):
-        pass # returns response
+        with self.lock:
+            pass # returns response
 
     def call_with_address(self, service, request, address):
-        return # returns response
+        with self.lock:
+            socket = self.bus.ctx.socket(zmq.REQ)
+            socket.connect(address)
+            socket.send(call.encode_req(service, request))
+            s = socket.recv()
+            return call.decode_res(s)
 
     def register_service(self, service, handler):
-        pass
+        with self.lock:
+            pass
 
     def register_message_handler(self, topic, handler):
-        self._subscribe_to_topic(topic)
-        if topic in self.message_handlers:
-            self.message_handlers[topic].append(handler)
-        else:
-            self.message_handlers[topic] = [handler]
+        with self.lock:
+            self._subscribe_to_topic(topic)
+            if topic in self.message_handlers:
+                self.message_handlers[topic].append(handler)
+            else:
+                self.message_handlers[topic] = [handler]
 
     def _handle_message(self, topic, message):
         if topic in self.message_handlers: #todo call also partial matches

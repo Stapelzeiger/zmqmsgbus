@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 import zmqmsgbus
 import zmqmsgbus.msg
+import zmqmsgbus.call as call
 import tempfile
 import zmq
 from logging import debug
@@ -55,6 +56,11 @@ class TestNode(unittest.TestCase):
         self.node._subscribe_to_topic('test')
         self.node._subscribe_to_topic('test')
         self.bus.subscribe.assert_called_once_with('test')
+
+    def test_call_with_address(self):
+        self.bus.ctx.socket.return_value.recv.return_value = call.encode_res(456)
+        ret = self.node.call_with_address('test', 123, 'ipc://ipc/node/service')
+        self.assertEqual(456, ret)
 
 
 class TestNodeMessagHandlers(TestNode):
