@@ -42,26 +42,30 @@ class Node:
     def _get_message_from_buffer(self, topic):
         return self.message_buffers[topic].get()
 
-    def recv(self, topic):
+    def _subscribe_to_topic(self, topic):
         if topic not in self.subscriptions:
             self.bus.subscribe(topic)
             self.subscriptions.add(topic)
+
+    def recv(self, topic):
+        self._subscribe_to_topic(topic)
         self._register_message_buffer_handler(topic)
         return self._get_message_from_buffer(topic)
 
     def call(self, service, request):
         pass # returns response
 
+    def register_service(self, service, handler):
+        pass
+
     def register_message_handler(self, topic, handler):
+        self._subscribe_to_topic(topic)
         if topic in self.message_handlers:
             self.message_handlers[topic].append(handler)
         else:
             self.message_handlers[topic] = [handler]
 
-    def register_service(self, service, handler):
-        pass
-
     def _handle_message(self, topic, message):
-        if topic in self.message_handlers:
+        if topic in self.message_handlers: #todo call also partial matches
             for handler in self.message_handlers[topic]:
                 handler(topic, message)

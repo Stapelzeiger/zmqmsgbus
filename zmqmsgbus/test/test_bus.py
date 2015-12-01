@@ -50,6 +50,14 @@ class TestNode(unittest.TestCase):
         self.node.publish('topic', 123)
         self.bus.publish.assert_called_once_with('topic', 123)
 
+    def test_multiple_subscribe_calls_subscribe_once(self):
+        self.node._subscribe_to_topic('test')
+        self.node._subscribe_to_topic('test')
+        self.bus.subscribe.assert_called_once_with('test')
+
+
+class TestNodeMessagHandlers(TestNode):
+
     def test_register_message_handler(self):
         handler = Mock()
         self.node.register_message_handler('test', handler)
@@ -65,16 +73,17 @@ class TestNode(unittest.TestCase):
         handler1.assert_called_once_with('test', 123)
         handler2.assert_called_once_with('test', 123)
 
-    @patch('zmqmsgbus.Queue.get')
-    def test_recv_calls_subscribe(self, queue_get_mock):
-        self.node.recv('topic')
-        self.bus.subscribe.assert_called_once_with('topic')
+    def test_register_message_handler_calls_subscribe(self):
+        self.node.register_message_handler('test', lambda t, m: None)
+        self.bus.subscribe.assert_called_once_with('test')
+
+
+class TestNodeRecv(TestNode):
 
     @patch('zmqmsgbus.Queue.get')
-    def test_multiple_recv_calls_subscribe_once(self, queue_get_mock):
-        self.node.recv('topic')
-        self.node.recv('topic')
-        self.bus.subscribe.assert_called_once_with('topic')
+    def test_recv_calls_subscribe(self, queue_get_mock):
+        self.node.recv('test')
+        self.bus.subscribe.assert_called_once_with('test')
 
     @patch('zmqmsgbus.Queue.put_nowait')
     def test_message_buffer_register(self, queue_put_mock):
