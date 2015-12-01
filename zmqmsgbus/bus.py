@@ -1,5 +1,5 @@
 import zmq
-import zmqmsgbus
+import zmqmsgbus.msg as msg
 from queue import Queue
 
 
@@ -12,13 +12,13 @@ class Bus:
         self.out_sock.connect(pub_addr)
 
     def publish(self, topic, message):
-        self.out_sock.send(zmqmsgbus.encode(topic, message))
+        self.out_sock.send(msg.encode(topic, message))
 
     def subscribe(self, topic):
-        self.in_sock.setsockopt(zmq.SUBSCRIBE, zmqmsgbus.createZmqFilter(topic))
+        self.in_sock.setsockopt(zmq.SUBSCRIBE, msg.createZmqFilter(topic))
 
     def recv(self):
-        return zmqmsgbus.decode(self.in_sock.recv())
+        return msg.decode(self.in_sock.recv())
 
 
 class Node:

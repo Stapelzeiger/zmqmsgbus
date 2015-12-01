@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 import zmqmsgbus
+import zmqmsgbus.msg
 import tempfile
 import zmq
 from logging import debug
@@ -27,7 +28,7 @@ class TestBus(unittest.TestCase):
 
     def test_publish(self):
         self.bus.publish('test', 'hello')
-        expected_msg = zmqmsgbus.encode('test', 'hello')
+        expected_msg = zmqmsgbus.msg.encode('test', 'hello')
         self.out_sock.send.assert_called_once_with(expected_msg)
 
     def test_subscribe(self):
@@ -36,7 +37,7 @@ class TestBus(unittest.TestCase):
                                                         b'test/topic\x00')
 
     def test_recv(self):
-        self.in_sock.recv.return_value = zmqmsgbus.encode('test', 123)
+        self.in_sock.recv.return_value = zmqmsgbus.msg.encode('test', 123)
         self.assertEqual(('test', 123), self.bus.recv())
 
 
