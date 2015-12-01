@@ -72,6 +72,13 @@ class TestNodeMessagHandlers(TestNode):
         self.node._handle_message('test', 123)
         handler.assert_called_once_with('test', 123)
 
+    def test_handle_namespace(self):
+        handler = Mock()
+        self.node.register_message_handler('test/', handler)
+        self.bus.subscribe.assert_called_once_with('test/')
+        self.node._handle_message('test/msg', 123)
+        handler.assert_called_once_with('test/msg', 123)
+
     def test_register_multiple_message_handlers_same_topic(self):
         handler1 = Mock()
         handler2 = Mock()

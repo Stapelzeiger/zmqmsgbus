@@ -97,9 +97,12 @@ class Node:
                 self.message_handlers[topic] = [handler]
 
     def _handle_message(self, topic, message):
-        if topic in self.message_handlers: #todo call also partial matches
-            for handler in self.message_handlers[topic]:
-                handler(topic, message)
+        topic_path = topic.split('/')
+        name_list = (['/'.join(topic_path[0:i])+'/' for i in range(len(topic_path))] + [topic])
+        for name in name_list:
+            if name in self.message_handlers:
+                for handler in self.message_handlers[name]:
+                    handler(topic, message)
 
     def _recv_msg_loop(self):
         while (1):
