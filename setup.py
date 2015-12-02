@@ -16,6 +16,7 @@ args = dict(
         'console_scripts': [
             'dump=zmqmsgbus.tools.dump',
             'forwarder=zmqmsgbus.tools.forwarder',
+            'bus=zmqmsgbus.tools.bus',
             'list=zmqmsgbus.tools.list'
         ],
     },
