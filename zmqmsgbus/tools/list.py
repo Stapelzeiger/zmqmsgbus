@@ -17,7 +17,7 @@ def handler(topic, content):
     else:
         messages[topic] = 1
 
-node.register_message_handler('/test/', handler)
+node.register_message_handler('/', handler)
 while 1:
     time.sleep(1)
     print(CLEAR_CONSOLE)
