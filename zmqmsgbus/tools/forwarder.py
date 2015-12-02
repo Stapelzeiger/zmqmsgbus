@@ -1,20 +1,5 @@
-import zmq
 import argparse
-
-
-def forward(from_list, to_list):
-    context = zmq.Context()
-
-    in_sock = context.socket(zmq.SUB)
-    in_sock.bind("tcp://*:13370")
-    in_sock.bind("ipc://ipc/sink")
-    in_sock.setsockopt(zmq.SUBSCRIBE, b'')
-
-    out_sock = context.socket(zmq.PUB)
-    out_sock.bind("tcp://*:13371")
-    out_sock.bind("ipc://ipc/source")
-
-    zmq.device(zmq.FORWARDER, in_sock, out_sock)
+import zmqmsgbus
 
 
 if __name__ == '__main__':
@@ -27,4 +12,4 @@ if __name__ == '__main__':
 
     print('forwarding from {}'.format(args.from_addr))
     print('to {}'.format(args.to_addr))
-    forward(args.from_addr, args.to_addr)
+    zmqmsgbus.forward(args.from_addr, args.to_addr)
