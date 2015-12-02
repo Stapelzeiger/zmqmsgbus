@@ -7,12 +7,13 @@ import time
 
 
 class Bus:
-    def __init__(self, sub_addr, pub_addr):
+    def __init__(self, sub_addr, pub_addr=None):
         self.ctx = zmq.Context()
         self.in_sock = self.ctx.socket(zmq.SUB)
         self.out_sock = self.ctx.socket(zmq.PUB)
         self.in_sock.connect(sub_addr)
-        self.out_sock.connect(pub_addr)
+        if pub_addr is not None:
+            self.out_sock.connect(pub_addr)
 
     def __del__(self):
         self.ctx.destroy()

@@ -5,8 +5,7 @@ import zmqmsgbus
 CLEAR_CONSOLE = '\x1b[2J\x1b[H'
 
 
-bus = zmqmsgbus.Bus(sub_addr='ipc://ipc/source',
-                    pub_addr='ipc://ipc/sink')
+bus = zmqmsgbus.Bus(sub_addr='ipc://ipc/source')
 node = zmqmsgbus.Node(bus)
 
 messages = {}
