@@ -66,6 +66,20 @@ class TestNode(unittest.TestCase):
 
 class TestNodeMessagHandlers(TestNode):
 
+    def test_topic_subscriptions_for_topic(self):
+        sub = self.node._topic_possible_subscriptions('/test/sub/topic')
+        debug(sub)
+        self.assertEqual(sub, set(['/', '/test/', '/test/sub/', '/test/sub/topic']))
+
+    def test_topic_subscriptions_for_namespace(self):
+        sub = self.node._topic_possible_subscriptions('/test/sub/')
+        debug(sub)
+        self.assertEqual(sub, set(['/', '/test/', '/test/sub/']))
+
+    def test_topic_subscriptions_for_root_namespace(self):
+        sub = self.node._topic_possible_subscriptions('/')
+        self.assertEqual(sub, set(['/']))
+
     def test_register_message_handler(self):
         handler = Mock()
         self.node.register_message_handler('test', handler)

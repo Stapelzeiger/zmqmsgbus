@@ -97,12 +97,19 @@ class Node:
             else:
                 self.message_handlers[topic] = [handler]
 
-    def _handle_message(self, topic, message):
+    @staticmethod
+    def _topic_possible_subscriptions(topic):
+        """ returns the possible variations of a topic
+            (list of the topic and the contatining namespaces)
+        """
         topic_path = topic.split('/')
-        name_list = (['/'.join(topic_path[0:i])+'/' for i in range(len(topic_path))] + [topic])
-        for name in name_list:
-            if name in self.message_handlers:
-                for handler in self.message_handlers[name]:
+        return set(['/'.join(topic_path[0:i])+'/' for i in range(len(topic_path))] + [topic])
+
+    def _handle_message(self, topic, message):
+        possible_subscriptions = self._topic_possible_subscriptions(topic)
+        for subscription in possible_subscriptions:
+            if subscription in self.message_handlers:
+                for handler in self.message_handlers[subscription]:
                     handler(topic, message)
 
     def _recv_msg_loop(self):
