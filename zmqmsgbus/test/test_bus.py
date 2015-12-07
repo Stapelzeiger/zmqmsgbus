@@ -59,6 +59,11 @@ class TestNode(unittest.TestCase):
         self.node._subscribe_to_topic('test')
         self.bus.subscribe.assert_called_once_with('test')
 
+
+class TestNodeServiceCalls(unittest.TestCase):
+
+    setUp = TestNode.setUp
+
     def test_call_with_address(self):
         self.bus.ctx.socket.return_value.recv.return_value = call.encode_res(456)
         ret = self.node.call_with_address('test', 123, 'ipc://ipc/node/service')
