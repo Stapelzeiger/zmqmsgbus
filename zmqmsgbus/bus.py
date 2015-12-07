@@ -4,6 +4,7 @@ import zmqmsgbus.call as call
 import threading
 import queue
 import time
+import uuid
 
 
 class Bus:
@@ -31,20 +32,39 @@ class Bus:
 class Node:
     MAX_MESSAGE_BUF_SZ = 1000
 
-    def __init__(self, bus):
+    def __init__(self, bus, serv_addr=None):
         self.bus = bus
+        self.lock = threading.RLock()
+
         self.subscriptions = set()
         self.message_handlers = {}
         self.message_buffers = {}
-        self.lock = threading.RLock()
-        self.recv_deamon = threading.Thread(target=self._recv_msg_loop, daemon=True)
-        self.recv_deamon.start()
+        self.service_handlers = {}
         self.service_address_table = {}
         self.register_message_handler('/service_address/',
                 lambda t, m: self._service_address_subscription_handler(t, m))
 
-    def __del__(self):
-        self.recv_deamon.stop()
+        self._connect_service_socket(serv_addr)
+
+        self.recv_deamon = threading.Thread(target=self._recv_msg_loop, daemon=True)
+        self.recv_deamon.start()
+        self.publish_deamon = threading.Thread(target=self._publish_service_address_loop, daemon=True)
+        self.publish_deamon.start()
+        self.service_deamon = threading.Thread(target=self._handle_service_loop, daemon=True)
+        self.service_deamon.start()
+
+    def _connect_service_socket(self, serv_addr):
+        self.service_sock = self.bus.ctx.socket(zmq.REP)
+        if serv_addr is None:
+            self.serv_addr = "ipc://ipc/" + str(uuid.uuid1())
+            self.service_sock.bind(self.serv_addr)
+        elif (serv_addr.startswith('tcp://') and
+              not serv_addr.rsplit(':', 1)[1].isdigit()):
+            port = self.service_sock.bind_to_random_port(serv_addr)
+            self.serv_addr = serv_addr + ':' + str(port)
+        else:
+            self.serv_addr = serv_addr
+            self.service_sock.bind(self.serv_addr)
 
     def publish(self, topic, message):
         with self.lock:
@@ -97,7 +117,15 @@ class Node:
 
     def register_service(self, service, handler):
         with self.lock:
-            pass
+            self.service_handlers[service] = handler
+
+    def _service_handle(self, buf):
+        service, arg = call.decode_req(buf)
+        with self.lock:
+            if service in self.service_handlers:
+                return call.encode_res(self.service_handlers[service](arg))
+            else:
+                return call.encode_res_error("service doesn't exist")
 
     def register_message_handler(self, topic, handler):
         with self.lock:
@@ -133,3 +161,19 @@ class Node:
                     time.sleep(0.001)
                 else:
                     raise err
+
+    def _publish_service_address(self):
+        for service in self.service_handlers:
+            self.bus.publish('/service_address' + service, self.serv_addr)
+
+    def _publish_service_address_loop(self):
+        while (1):
+            with self.lock:
+                self._publish_service_address()
+            time.sleep(1)
+
+    def _handle_service_loop(self):
+        while (1):
+            buf = self.service_sock.recv()
+            res = self._service_handle(buf)
+            self.service_sock.send(res)

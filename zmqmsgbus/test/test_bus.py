@@ -1,8 +1,8 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 import zmqmsgbus
 import zmqmsgbus.msg
-import zmqmsgbus.call as call
+import zmqmsgbus.call
 import tempfile
 import zmq
 from logging import debug
@@ -65,7 +65,7 @@ class TestNodeServiceCalls(unittest.TestCase):
     setUp = TestNode.setUp
 
     def test_call_with_address(self):
-        self.bus.ctx.socket.return_value.recv.return_value = call.encode_res(456)
+        self.bus.ctx.socket.return_value.recv.return_value = zmqmsgbus.call.encode_res(456)
         ret = self.node.call_with_address('test', 123, 'ipc://ipc/node/service')
         self.assertEqual(456, ret)
 
@@ -170,3 +170,52 @@ class TestNodeRecv(unittest.TestCase):
     def test_recv_timeout(self, queue_get_mock):
         self.node.recv('test', timeout=1)
         queue_get_mock.assert_called_once_with(timeout=1)
+
+
+class TestNodeServiceHanlders(unittest.TestCase):
+
+    setUp = TestNode.setUp
+
+    def test_handle_service(self):
+        handler = Mock()
+        handler.return_value = 456
+        self.node.register_service('/service', handler)
+        self.assertEqual(zmqmsgbus.call.encode_res(456),
+                         self.node._service_handle(zmqmsgbus.call.encode_req('/service', 123)))
+        handler.assert_called_once_with(123)
+
+    def test_hanle_nonexistant_service(self):
+        self.assertEqual(zmqmsgbus.call.encode_res_error("service doesn't exist"),
+                         self.node._service_handle(zmqmsgbus.call.encode_req('/service', None)))
+
+    def test_publish_service_address(self):
+        self.node.register_service('/service_a', Mock())
+        self.node.register_service('/service_b', Mock())
+        self.node.register_service('/test/service_c', Mock())
+        self.node._publish_service_address()
+        addr = self.node.serv_addr
+        expeced_calls = [call('/service_address/service_a', addr)]
+        expeced_calls = [call('/service_address/service_b', addr)]
+        expeced_calls = [call('/service_address/test/service_c', addr)]
+        self.bus.publish.assert_has_calls(expeced_calls)
+
+    @patch('zmqmsgbus.uuid.uuid1')
+    @patch('zmqmsgbus.threading.Thread')
+    def test_connect_service_socket_no_addr(self, thd, uuid):
+        uuid.return_value = 123456
+        bus = Mock()
+        node = zmqmsgbus.Node(bus, serv_addr=None)
+        self.assertEqual('ipc://ipc/123456', node.serv_addr)
+
+    @patch('zmqmsgbus.threading.Thread')
+    def test_connect_service_socket_tcp_random_port(self, thd):
+        bus = Mock()
+        bus.ctx.socket.return_value.bind_to_random_port.return_value = 1234
+        node = zmqmsgbus.Node(bus, serv_addr='tcp://localhost')
+        self.assertEqual('tcp://localhost:1234', node.serv_addr)
+
+    @patch('zmqmsgbus.threading.Thread')
+    def test_connect_service_socket_given_addr(self, thd):
+        bus = Mock()
+        node = zmqmsgbus.Node(bus, serv_addr='tcp://localhost:123')
+        self.assertEqual('tcp://localhost:123', node.serv_addr)
