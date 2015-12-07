@@ -82,7 +82,9 @@ class TestNode(unittest.TestCase):
         self.assertEqual(123, ret)
 
 
-class TestNodeMessagHandlers(TestNode):
+class TestNodeMessagHandlers(unittest.TestCase):
+
+    setUp = TestNode.setUp
 
     def test_topic_subscriptions_for_topic(self):
         sub = self.node._topic_possible_subscriptions('/test/sub/topic')
@@ -127,7 +129,9 @@ class TestNodeMessagHandlers(TestNode):
         self.bus.subscribe.assert_called_once_with('test')
 
 
-class TestNodeRecv(TestNode):
+class TestNodeRecv(unittest.TestCase):
+
+    setUp = TestNode.setUp
 
     @patch('zmqmsgbus.queue.Queue.get')
     def test_recv_calls_subscribe(self, queue_get_mock):
