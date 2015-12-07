@@ -6,20 +6,12 @@ args = dict(
     name='zmqmsgbus',
     version='0.1',
     description='Very simple message bus based on zeromq and messagepack.',
-    packages=['zmqmsgbus'],
+    packages=['zmqmsgbus', 'zmqmsgbus.tools'],
     install_requires=['msgpack-python', 'zmq'],
     author='Patrick Spieler',
     author_email='stapelzeiger@gmail.com',
     url='https://github.com/stapelzeiger/zmqmsgbus',
     license='BSD',
-    entry_points = {
-        'console_scripts': [
-            'dump=zmqmsgbus.tools.dump',
-            'forwarder=zmqmsgbus.tools.forwarder',
-            'bus=zmqmsgbus.tools.bus',
-            'list=zmqmsgbus.tools.list'
-        ],
-    },
     test_suite='nose.collector',
     tests_require=['nose']
 )
