@@ -39,6 +39,9 @@ class Node:
         self.lock = threading.RLock()
         self.recv_deamon = threading.Thread(target=self._recv_msg_loop, daemon=True)
         self.recv_deamon.start()
+        self.service_address_table = {}
+        self.register_message_handler('/service_address/',
+                lambda t, m: self._service_address_subscription_handler(t, m))
 
     def __del__(self):
         self.recv_deamon.stop()
@@ -46,6 +49,9 @@ class Node:
     def publish(self, topic, message):
         with self.lock:
             self.bus.publish(topic, message)
+
+    def _service_address_subscription_handler(self, topic, message):
+        self.service_address_table[topic[len('/service_address'):]] = message
 
     def _register_message_buffer_handler(self, topic):
         if topic not in self.message_buffers:
@@ -75,7 +81,11 @@ class Node:
 
     def call(self, service, request):
         with self.lock:
-            pass # returns response
+            if service in self.service_address_table:
+                addr = self.service_address_table[service]
+                self.call_with_address(service, request, addr)
+            else:
+                raise call.ServiceFailed('service not known')
 
     def call_with_address(self, service, request, address):
         with self.lock:

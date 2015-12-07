@@ -54,6 +54,7 @@ class TestNode(unittest.TestCase):
         self.bus.publish.assert_called_once_with('topic', 123)
 
     def test_multiple_subscribe_calls_subscribe_once(self):
+        self.bus.subscribe = Mock()
         self.node._subscribe_to_topic('test')
         self.node._subscribe_to_topic('test')
         self.bus.subscribe.assert_called_once_with('test')
@@ -62,6 +63,16 @@ class TestNode(unittest.TestCase):
         self.bus.ctx.socket.return_value.recv.return_value = call.encode_res(456)
         ret = self.node.call_with_address('test', 123, 'ipc://ipc/node/service')
         self.assertEqual(456, ret)
+
+    def test_service_address_subscription_handler(self):
+        self.node._service_address_subscription_handler('/service_address/test', 'addr')
+        self.assertEqual(self.node.service_address_table['/test'], 'addr')
+
+    def test_service_call_uses_address(self):
+        self.node._service_address_subscription_handler('/service_address/test', 'addr')
+        self.node.call_with_address = Mock()
+        self.node.call('/test', 'foo')
+        self.node.call_with_address.assert_called_once_with('/test', 'foo', 'addr')
 
 
 class TestNodeMessagHandlers(TestNode):
@@ -88,6 +99,7 @@ class TestNodeMessagHandlers(TestNode):
 
     def test_handle_namespace(self):
         handler = Mock()
+        self.bus.subscribe = Mock()
         self.node.register_message_handler('test/', handler)
         self.bus.subscribe.assert_called_once_with('test/')
         self.node._handle_message('test/msg', 123)
@@ -103,6 +115,7 @@ class TestNodeMessagHandlers(TestNode):
         handler2.assert_called_once_with('test', 123)
 
     def test_register_message_handler_calls_subscribe(self):
+        self.bus.subscribe = Mock()
         self.node.register_message_handler('test', lambda t, m: None)
         self.bus.subscribe.assert_called_once_with('test')
 
@@ -111,6 +124,7 @@ class TestNodeRecv(TestNode):
 
     @patch('zmqmsgbus.queue.Queue.get')
     def test_recv_calls_subscribe(self, queue_get_mock):
+        self.bus.subscribe = Mock()
         self.node.recv('test')
         self.bus.subscribe.assert_called_once_with('test')
 
