@@ -25,5 +25,5 @@ class TestZmqCall(unittest.TestCase):
                          call.decode_res(call.encode_res(123)))
 
     def test_decode_res_err(self):
-        with self.assertRaises(call.ServiceFailed):
+        with self.assertRaises(call.CallFailed):
             call.decode_res(call.encode_res_error('error'))

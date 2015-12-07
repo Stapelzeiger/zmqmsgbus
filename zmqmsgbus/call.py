@@ -1,7 +1,8 @@
 import msgpack
 
 
-class ServiceFailed(Exception):
+class CallFailed(Exception):
+    """ This exception is raised when a call fails """
     pass
 
 
@@ -26,4 +27,4 @@ def decode_res(buf):
     if stat == 'ok':
         return res
     else:
-        raise ServiceFailed(res)
+        raise CallFailed(res)

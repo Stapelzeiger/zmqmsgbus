@@ -188,6 +188,13 @@ class TestNodeServiceHanlders(unittest.TestCase):
         self.assertEqual(zmqmsgbus.call.encode_res_error("service doesn't exist"),
                          self.node._service_handle(zmqmsgbus.call.encode_req('/service', None)))
 
+    def test_hanle_failed_service(self):
+        def handler(req):
+            raise zmqmsgbus.ServiceFailed('yo')
+        self.node.register_service('/service', handler)
+        self.assertEqual(zmqmsgbus.call.encode_res_error('yo'),
+                         self.node._service_handle(zmqmsgbus.call.encode_req('/service', None)))
+
     def test_publish_service_address(self):
         self.node.register_service('/service_a', Mock())
         self.node.register_service('/service_b', Mock())

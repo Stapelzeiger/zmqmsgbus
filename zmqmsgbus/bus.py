@@ -29,6 +29,11 @@ class Bus:
         return msg.decode(self.in_sock.recv(flags=zmq_recv_flags))
 
 
+class ServiceFailed(Exception):
+    """ This exception should be raised by a service hanlder if it fails """
+    pass
+
+
 class Node:
     MAX_MESSAGE_BUF_SZ = 1000
 
@@ -105,7 +110,7 @@ class Node:
                 addr = self.service_address_table[service]
                 return self.call_with_address(service, request, addr)
             else:
-                raise call.ServiceFailed('service not known')
+                raise call.CallFailed('service not known')
 
     def call_with_address(self, service, request, address):
         with self.lock:
@@ -123,7 +128,10 @@ class Node:
         service, arg = call.decode_req(buf)
         with self.lock:
             if service in self.service_handlers:
-                return call.encode_res(self.service_handlers[service](arg))
+                try:
+                    return call.encode_res(self.service_handlers[service](arg))
+                except ServiceFailed as e:
+                    return call.encode_res_error(str(e))
             else:
                 return call.encode_res_error("service doesn't exist")
 
