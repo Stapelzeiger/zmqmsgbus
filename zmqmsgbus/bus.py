@@ -83,7 +83,7 @@ class Node:
         with self.lock:
             if service in self.service_address_table:
                 addr = self.service_address_table[service]
-                self.call_with_address(service, request, addr)
+                return self.call_with_address(service, request, addr)
             else:
                 raise call.ServiceFailed('service not known')
 

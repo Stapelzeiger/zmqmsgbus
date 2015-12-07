@@ -74,6 +74,13 @@ class TestNode(unittest.TestCase):
         self.node.call('/test', 'foo')
         self.node.call_with_address.assert_called_once_with('/test', 'foo', 'addr')
 
+    def test_service_call_returns_reply(self):
+        self.node._service_address_subscription_handler('/service_address/test', 'addr')
+        self.node.call_with_address = Mock()
+        self.node.call_with_address.return_value = 123
+        ret = self.node.call('/test', 'foo')
+        self.assertEqual(123, ret)
+
 
 class TestNodeMessagHandlers(TestNode):
 
