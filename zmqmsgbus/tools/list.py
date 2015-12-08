@@ -21,6 +21,6 @@ if __name__ == '__main__':
         time.sleep(1)
         print(CLEAR_CONSOLE)
         print('topics:')
-        for topic, count in messages.items():
+        for topic, count in sorted(messages.items()):
             print('{}: {}Hz'.format(topic, count))
         messages = {}
