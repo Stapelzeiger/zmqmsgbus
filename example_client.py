@@ -11,6 +11,6 @@ while 1:
     try:
         print(i, node.call('/example/square', i))
         i += 1
-    except zmqmsgbus.call.ServiceFailed as e:
+    except zmqmsgbus.call.CallFailed as e:
         print(e)
     time.sleep(0.1)
