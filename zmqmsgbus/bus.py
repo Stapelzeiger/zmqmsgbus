@@ -128,12 +128,13 @@ class Node:
         service, arg = call.decode_req(buf)
         with self.lock:
             if service in self.service_handlers:
-                try:
-                    return call.encode_res(self.service_handlers[service](arg))
-                except ServiceFailed as e:
-                    return call.encode_res_error(str(e))
+                hanlder = self.service_handlers[service]
             else:
                 return call.encode_res_error("service doesn't exist")
+        try:
+            return call.encode_res(hanlder(arg))
+        except ServiceFailed as e:
+            return call.encode_res_error(str(e))
 
     def register_message_handler(self, topic, handler):
         with self.lock:
