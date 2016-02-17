@@ -7,7 +7,7 @@ class CallFailed(Exception):
 
 
 def encode_req(service, req):
-    return msgpack.packb([service, req])
+    return msgpack.packb([service, req], use_bin_type=True)
 
 
 def decode_req(buf):
@@ -15,11 +15,11 @@ def decode_req(buf):
 
 
 def encode_res(res):
-    return msgpack.packb(['ok', res])
+    return msgpack.packb(['ok', res], use_bin_type=True)
 
 
 def encode_res_error(err):
-    return msgpack.packb(['err', err])
+    return msgpack.packb(['err', err], use_bin_type=True)
 
 
 def decode_res(buf):
