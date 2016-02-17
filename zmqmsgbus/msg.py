@@ -2,7 +2,7 @@ import msgpack
 
 
 def encode(topic, msg):
-    return topic.encode('utf8') + b'\0' + msgpack.packb(msg)
+    return topic.encode('utf8') + b'\0' + msgpack.packb(msg, use_bin_type=True)
 
 
 def decode(buf):
